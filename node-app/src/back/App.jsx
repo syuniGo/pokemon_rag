@@ -5,7 +5,6 @@ import LoadingSpinner from './LoadingSpinner'
 import ErrorMessage from './ErrorMessage'
 import PokemonPage from './PokemonPage'
 import PokemonList from './PokemonList'
-import PokemonSearch from './PokemonSearch'
 
 const mapResults = (({ results }) => results.map(({ url, name }) => ({
   url,
@@ -36,7 +35,6 @@ const App = () => {
   return (
     <Routes>
       <Route exact path="/" element={<PokemonList pokemonList={pokemonList} />} />
-      <Route exact path="/search" element={<PokemonSearch />} />
       <Route exact path="/pokemon/:name" element={
         <PokemonPage pokemonList={pokemonList} previous={previous} next={next} />
       } />

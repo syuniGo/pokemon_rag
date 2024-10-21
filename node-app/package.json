@@ -8,7 +8,8 @@
     "start-prod": "node app.js",
     "test": "jest",
     "eslint": "eslint './**/*.{js,jsx}'",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "dev_test": "webpack-dev-server --open --mode development --port 3037 --host 0.0.0.0"
   },
   "repository": {
     "type": "git",
@@ -60,7 +61,12 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.1",
-    "webpack-dev-server": "^4.15.1"
+    "webpack-dev-server": "^4.15.1",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-slot": "^1.0.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "jest": {
     "testEnvironment": "jsdom",

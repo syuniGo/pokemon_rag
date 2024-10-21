@@ -7,7 +7,9 @@ openai==1.35.7
 sentence-transformers==2.7.0
 numpy==1.26.4
 
---find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-torch==2.3.1+cpu
+torch==2.3.1
 pandas
 sqlalchemy 
+jupyter
+flask_cors
+groq
