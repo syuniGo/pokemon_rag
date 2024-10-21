@@ -10,6 +10,7 @@ export default function PokemonSearch() {
   const [pokemonList, setPokemonList] = useState([]);
   const [searchResponse, setSearchResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPokemonIndex, setSelectedPokemonIndex] = useState(0);
 
   const handleSearch = async () => {
     if (!search.trim()) return;
@@ -27,12 +28,27 @@ export default function PokemonSearch() {
           id: pokemon.number,
           name: pokemon.nameCn
         })));
+        setSelectedPokemonIndex(0);
       }
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 计算卡片位置和样式
+  const getCardStyle = (index, isSelected) => {
+    const baseTransform = `translateX(${index * 120}px)`;
+    const selectedTransform = `translateX(${index * 120}px) translateY(-20px)`;
+    
+    return {
+      transform: isSelected ? selectedTransform : baseTransform,
+      transition: 'all 0.3s ease',
+      position: 'absolute',
+      left: 0,
+      zIndex: isSelected ? pokemonList.length + 1 : pokemonList.length - index,
+    };
   };
 
   return (
@@ -63,36 +79,53 @@ export default function PokemonSearch() {
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Pokemon List */}
+        <div className="flex flex-col gap-6">
+          {/* Pokemon Cards */}
           {pokemonList.length > 0 && (
-            <div className="lg:w-2/5 space-y-3">
+            <div className="w-full">
               <h2 className="text-lg font-medium text-white mb-4">相关宝可梦</h2>
-              {pokemonList.map(({ id, name }) => (
-                <Link
-                  key={id}
-                  to={`/pokemon/${name}`}
-                  className="flex items-center gap-4 bg-[#2a2f45] p-4 rounded-lg hover:bg-[#3a3f55] transition-colors"
-                >
-                  <div className="w-16 h-16 bg-[#1a1f36] rounded-lg p-2">
-                    <img
-                      src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
-                      alt={name}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">{name}</p>
-                    <p className="text-sm text-gray-400">#{String(id).padStart(3, '0')}</p>
-                  </div>
-                </Link>
-              ))}
+              <div className="relative w-full h-64 overflow-x-auto">
+                <div className="absolute top-0 left-0 w-full h-full">
+                  {pokemonList.map(({ id, name }, index) => (
+                    <div
+                      key={id}
+                      style={getCardStyle(index, index === selectedPokemonIndex)}
+                      className={`w-48 cursor-pointer ${
+                        index === selectedPokemonIndex ? 'opacity-100' : 'opacity-90 hover:opacity-100'
+                      }`}
+                      onClick={() => setSelectedPokemonIndex(index)}
+                    >
+                      <div className={`bg-[#2a2f45] rounded-lg p-4 ${
+                        index === selectedPokemonIndex 
+                          ? 'border-2 border-[#4c4dff] bg-[#3a3f55]' 
+                          : ''
+                      }`}>
+                        <div className="w-full h-28 bg-[#1a1f36] rounded-lg p-2 mb-2">
+                          <img
+                            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
+                            alt={name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="text-center">
+                          <p className={`font-medium ${
+                            index === selectedPokemonIndex 
+                              ? 'text-[#4c4dff]' 
+                              : 'text-white'
+                          }`}>{name}</p>
+                          <p className="text-sm text-gray-400">#{String(id).padStart(3, '0')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {/* AI Response */}
           {searchResponse && (
-            <div className="lg:w-3/5 space-y-4">
+            <div className="w-full space-y-4">
               <div className="bg-[#2a2f45] rounded-lg p-6">
                 <h2 className="text-lg font-medium text-white mb-4">AI 回答</h2>
                 <p className="text-gray-300">{searchResponse.answer}</p>
