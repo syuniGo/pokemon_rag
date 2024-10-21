@@ -9,7 +9,8 @@
     "test": "jest",
     "eslint": "eslint './**/*.{js,jsx}'",
     "build": "webpack --mode production",
-    "dev_test": "webpack-dev-server --open --mode development --port 3037 --host 0.0.0.0"
+    "dev_test": "webpack-dev-server --open --mode development --port 3037 --host 0.0.0.0",
+    "tw": "tailwindcss -i ./src/index.css -o ./src/tw.css --watch"
   },
   "repository": {
     "type": "git",
@@ -69,7 +70,9 @@
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss": "^3.4.1",
     "postcss": "^8.4.35",
-    "autoprefixer": "^10.4.17"
+    "autoprefixer": "^10.4.17",
+    "lucide-react": "^0.323.0"
+    
   },
   "jest": {
     "testEnvironment": "jsdom",
