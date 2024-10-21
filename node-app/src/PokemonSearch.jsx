@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
 import PokemonList from './PokemonList'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 
 export default function PokemonSearch() {
   const [search, setSearch] = useState('');
   const [pokemonList, setPokemonList] = useState([]);
+  const [searchResponse, setSearchResponse] = useState(null); // +++
 
   const testConnection = async () => {
     try {
-      const response = await fetch('http://localhost:8080/');
-      const data = await response.json();
+      const response = await fetch('http://localhost:8084/');
+      const data = await response.text();
       console.log('Test response:', data);
     } catch (error) {
       console.error('Test failed:', error);
@@ -20,7 +22,7 @@ export default function PokemonSearch() {
 
   const handleSearch = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/search', {
+      const response = await fetch('http://localhost:8084/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,8 +34,11 @@ export default function PokemonSearch() {
       });
 
       const data = await response.json();
-      if (data.success) {
-        setPokemonList(data.data.map(pokemon => ({
+      setSearchResponse(data); // +++
+
+      if (data && data.search_results) {
+        console.log('Search results:', data.search_results); // Debug log
+        setPokemonList(data.search_results.map(pokemon => ({
           id: pokemon.number,
           name: pokemon.nameCn
         })));
@@ -56,6 +61,23 @@ export default function PokemonSearch() {
         <Button onClick={handleSearch}>Search</Button>
         <Button onClick={testConnection}>Test Connection</Button>
       </div>
+
+      {searchResponse && (
+        <Card className="mb-4">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <p><strong>Answer:</strong> {searchResponse.answer}</p>
+              <p><strong>Relevance:</strong> {searchResponse.relevance}</p>
+              <p><strong>Explanation:</strong> {searchResponse.relevance_explanation}</p>
+              <div className="text-sm text-gray-500">
+                <p>Model: {searchResponse.model_used}</p>
+                <p>Response Time: {searchResponse.response_time.toFixed(2)}s</p>
+                <p>Total Tokens: {searchResponse.total_tokens}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {pokemonList.map((pokemon) => {

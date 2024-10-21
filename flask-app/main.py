@@ -10,7 +10,7 @@ import logging
 es_client = Elasticsearch([os.getenv('ES_HOST', 'http://elasticsearch:9200')])
 model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
 app = Flask(__name__)
-
+CORS(app)  # Allows all origins by default
 @app.route('/')
 def hello():
     """Return a friendly HTTP greeting."""

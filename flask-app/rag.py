@@ -181,6 +181,7 @@ class VectorSearchEngine:
             "eval_prompt_tokens": rel_token_stats["prompt_tokens"],
             "eval_completion_tokens": rel_token_stats["completion_tokens"],
             "eval_total_tokens": rel_token_stats["total_tokens"],
+            "search_results": search_results,
             # 移除openai_cost相关内容
         }
     
