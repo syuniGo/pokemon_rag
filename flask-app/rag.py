@@ -8,6 +8,7 @@ import logging
 from time import time
 from groq import Groq
 import json
+import re
 
 
 class VectorSearchEngine:
@@ -113,23 +114,23 @@ class VectorSearchEngine:
             CONTEXTの各ポケモンを分析し、以下のJSON形式で出力してください（コードブロックなし、追加の説明なし）：
 
             {{
-            "pokemon_entries": [
-                {{
-                    "no": "ポケモン図鑑番号",
-                    "name": "日本語名称",
-                    "relevance_score": "関連性スコア（0-100）",
-                    "power_rating": "実力ランク（S/A/B/C/D）",
-                    "relevance_analysis": "質問との関連性分析（50文字以内）",
-                    "background_story": "ミステリアスな背景ストーリー（100文字以内）"
+                "pokemon_entries": [
+                    {{
+                        "no": "ポケモン図鑑番号",
+                        "name": "日本語名称",
+                        "relevance_score": "関連性スコア（0-100）",
+                        "power_rating": "実力ランク（S/A/B/C/D）",
+                        "relevance_analysis": "質問との関連性分析（50文字以内）",
+                        "background_story": "ミステリアスな背景ストーリー（100文字以内）"
+                    }}
+                ],
+                "summary": {{
+                    "most_relevant_pokemon": {{
+                        "no": "最も関連性の高いポケモンの図鑑番号",
+                        "name": "日本語名称",
+                        "explanation": "このポケモンが最も関連性が高い理由（100文字以内）"
+                    }}
                 }}
-            ],
-            "summary": {{
-                "most_relevant_pokemon": {{
-                    "no": "最も関連性の高いポケモンの図鑑番号",
-                    "name": "日本語名称",
-                    "explanation": "このポケモンが最も関連性が高い理由（100文字以内）"
-                }}
-            }}
             }}
 
             QUESTION: {question}
@@ -317,22 +318,14 @@ class VectorSearchEngine:
         answer, token_stats = self.llm(prompt, model=model)
         print(f'LLM answer: {answer}')
         print(f'json.loads: {type(answer)}')
-        
-     
-        try:
-            if isinstance(answer, str):
-                # 只取第一个 { 之后的所有内容
-                answer_json = json.loads(answer[answer.find('{'):])
-            else:
-                answer_json = answer
-        except json.JSONDecodeError as e:
-            print(f"Error parsing JSON: {str(e)}")
-            answer_json = {
-                "pokemon_entries": [],
-                "summary": {}
-            }
+        matches = re.findall(r'{.*}', answer, re.DOTALL)
+        print(f'--------------matches: {matches}')
 
-        print(f'answer_json--------: {answer_json}')
+        json_str = matches[-1]
+        print(f'--------------matches: {json_str}')
+
+        answer_json = json.loads(json_str)
+        print(f'-----------answer_json extracted: {answer_json}')
 
         relevance, rel_token_stats = self.evaluate_relevance(query, answer)
         print(f'Relevance evaluation: {relevance}')
@@ -358,3 +351,5 @@ class VectorSearchEngine:
         }
     
         return answer_data
+
+

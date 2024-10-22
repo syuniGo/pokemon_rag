@@ -63,12 +63,22 @@ export default function PokemonSearch() {
       });
       const data = await response.json();
       setSearchResponse(data);
-      if (data?.search_results) {
-        const newPokemonList = data.search_results.map(pokemon => ({
-          id: pokemon.no,
-          name: pokemon.nameCn,
-          isRelevant: pokemon.no === 935
-        }));
+      // 修改：结合search_results和pokemon_entries创建新的pokemonList
+      if (data?.search_results && data?.pokemon_entries) {
+        const mostRelevantNo = data.summary?.most_relevant_pokemon?.no;
+        const newPokemonList = data.search_results.map(pokemon => {
+          const entry = data.pokemon_entries.find(entry => entry.no === pokemon.no);
+          return {
+            id: pokemon.no,
+            name: pokemon.nameCn,
+            isRelevant: pokemon.no === mostRelevantNo, // 根据most_relevant_pokemon设置推荐
+            // 添加pokemon_entries的信息
+            powerRating: entry?.power_rating || 'N/A',
+            relevanceScore: entry?.relevance_score || 0,
+            relevanceAnalysis: entry?.relevance_analysis || '',
+            backgroundStory: entry?.background_story || ''
+          };
+        });
         setPokemonList(newPokemonList);
       }
     } catch (error) {
@@ -134,11 +144,6 @@ export default function PokemonSearch() {
           </div>
         </div>
 
-        {/* Pokemon List */}
-        {/* Pokemon Details */}
-        {/* Pokemon Details */}
-        {/* Pokemon List */}
-        {/* Pokemon List */}
         {displayList.length > 0 && (
           <div className="mb-8">
             <div className="relative flex items-center justify-center gap-4">
@@ -155,13 +160,13 @@ export default function PokemonSearch() {
                   <div
                     key={`${pokemon.id}-${pokemon.displayIndex}`}
                     onClick={() => setSelectedPokemonIndex(index)}
-                    className={`transform transition-all duration-300 cursor-pointer ${index === 1  // 只有中间位置放大，不管是否是推荐项
+                    className={`transform transition-all duration-300 cursor-pointer ${index === 1  
                       ? 'scale-125 z-10'
                       : ''
                       }`}
                   >
                     <div className={`bg-[#2a2f45] rounded-lg p-4 ${pokemon.isRelevant
-                      ? 'ring-2 ring-[#FFD700] bg-[#313866]' // 保留金色边框和背景色
+                      ? 'ring-2 ring-[#FFD700] bg-[#313866]'
                       : ''
                       } ${index === 1
                         ? 'bg-[#3a3f55] shadow-xl shadow-[#4c4dff]/20'
@@ -187,6 +192,14 @@ export default function PokemonSearch() {
                         <p className="text-sm text-gray-400">
                           #{String(pokemon.id).padStart(3, '0')}
                         </p>
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs text-gray-300">
+                            实力评级: {pokemon.powerRating}
+                          </p>
+                          <p className="text-xs text-gray-300">
+                            相关度: {pokemon.relevanceScore}
+                          </p>
+                        </div>
                         {pokemon.isRelevant && (
                           <span className="absolute inline-block mt-1 px-2 py-0.5 bg-[#FFD700]/20 text-[#FFD700] text-xs rounded-full">
                             推荐
@@ -277,6 +290,15 @@ export default function PokemonSearch() {
               <div>
                 <h3 className="text-sm text-gray-400 mb-1">描述</h3>
                 <p className="text-white text-sm">{searchResponse.search_results[currentIndex].description}</p>
+              </div>
+              <div className="mt-4 border-t border-[#3a3f55] pt-4">
+                <h3 className="text-sm text-gray-400 mb-2">额外信息</h3>
+                <p className="text-white text-sm mb-2">
+                  相关性分析: {displayList[selectedPokemonIndex]?.relevanceAnalysis}
+                </p>
+                <p className="text-white text-sm">
+                  背景故事: {displayList[selectedPokemonIndex]?.backgroundStory}
+                </p>
               </div>
             </div>
           </div>
