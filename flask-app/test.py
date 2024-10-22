@@ -1,8 +1,9 @@
 # import requests
 # import unittest
 # import os
-# from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
 
 import unittest
 import requests
@@ -16,82 +17,61 @@ class TestEndpoints(unittest.TestCase):
         load_dotenv() 
         self.key_groq = os.getenv('KEY_groq')
         self.base_url = 'http://localhost:8084'
-
-    # def test_hello_endpoint(self):
-    #     response = requests.get(f'{self.base_url}/')
-    #     self.assertEqual(response.text, 'Hello World! CD')
     
-    # def test_echo_endpoint(self):
-    #     name = "test"
-    #     response = requests.get(f'{self.base_url}/echo/{name}')
-    #     self.assertEqual(response.json(), {"new-name": name})
-
-    # def test_search_endpoint(self):
-    #     data = {"query": "pikachu", "top_k": 5}
-    #     response = requests.post(f'{self.base_url}/api/search', json=data)
-    #     self.assertEqual(response.status_code, 200)
-    #     response_data = response.json()
-    #     # 改为检查返回值是dict而不是list 
-    #     self.assertTrue(isinstance(response_data, dict))
-    #     # 如果有error字段说明出错
-    #     self.assertNotIn('error', response_data)
-            
-    # def test_basic_search(self):
-    #     print('--------test_basic_search----------')
+    # def test_rag(self):
+    #     print('test----rag')
+    #     test_query = "fire"
     #     response = requests.post(
     #         f"{self.base_url}/api/search",
-    #         json={
-    #             "query": "Pikachu",
-    #             "top_k": 5
-    #         }
+    #         json={"query": test_query}
     #     )
-    #     # self.assertEqual(response.status_code, 200)
+        
+    #     self.assertEqual(response.status_code, 200)
     #     data = response.json()
-    #     # self.assertTrue(data["success"])
-    #     # self.assertIsInstance(data["data"], list)
-    #     print(data["data"])
+    #     print('sdada',data)
         
-    # def test_groq(self):
-    #     client = Groq(
-    #         api_key=self.key_groq,
-    #     )
-
-    #     chat_completion = client.chat.completions.create(
-    #         messages=[
-    #             {
-    #                 "role": "user",
-    #                 "content": "Explain the importance of fast language models",
-    #             }
-    #         ],
-    #         model="llama3-8b-8192",
-    #     )
-
-    #     print(chat_completion.choices[0].message.content)
+    #     # 验证返回数据结构
+    #     self.assertIn("answer", data)
+    #     self.assertIn("model_used", data)
+    #     self.assertIn("relevance", data)
+    #     self.assertIn("prompt_tokens", data)
+        
+    #     # 验证数据内容
+    #     self.assertIsInstance(data["answer"], str)
+    #     self.assertTrue(len(data["answer"]) > 0)
+    #     self.assertIn(data["relevance"], ["NON_RELEVANT", "PARTLY_RELEVANT", "RELEVANT", "UNKNOWN"])
     
-    def test_rag(self):
-        print('test----rag')
-        test_query = "fire"
-        response = requests.post(
-            f"{self.base_url}/api/search",
-            json={"query": test_query}
-        )
+    def test_es(self):
+        es_client = Elasticsearch([os.getenv('ES_HOST', 'http://elasticsearch:9200')])
+        model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+        query = "fire"
+        query_vector = model.encode(query).tolist()
         
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        print('sdada',data)
+        search_body = {
+            "knn": {
+                "field": "combined_text_vector",
+                "query_vector": query_vector,
+                "k": 5,
+                "num_candidates": 100
+            },
+           "_source": {
+                "exclude": ["combined_text_vector"]
+            },
+        }
+
+        results = es_client.search(
+                index="pokemon_index",
+                body=search_body
+            )
         
-        # 验证返回数据结构
-        self.assertIn("answer", data)
-        self.assertIn("model_used", data)
-        self.assertIn("relevance", data)
-        self.assertIn("prompt_tokens", data)
-        
-        # 验证数据内容
-        self.assertIsInstance(data["answer"], str)
-        self.assertTrue(len(data["answer"]) > 0)
-        print(f'data["relevance"]------------:{data["relevance"]}')
-        self.assertIn(data["relevance"], ["NON_RELEVANT", "PARTLY_RELEVANT", "RELEVANT", "UNKNOWN"])
-            
+        for hit in results['hits']['hits']:
+            # 获取文档的所有字段
+            source = hit['_source']
+            print("\n文档 ID:", hit['_id'])
+            print("所有字段:")
+            for field, value in source.items():
+                print(f"- {field}: {value}")
+
 
 if __name__ == '__main__':
     unittest.main()
