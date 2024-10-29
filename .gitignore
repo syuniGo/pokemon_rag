@@ -1,6 +1,5 @@
 node_modules
 elasticsearch_data/
-*.env
 *.pyc
 *.log
 *.ipynb
