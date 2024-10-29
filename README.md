@@ -76,7 +76,6 @@ The system consists of the following main components:
 - Docker & Docker Compose
 - Python 3.8+
 - Valid Groq API key
-- At least 16GB RAM recommended (for model loading)
 
 ### Installation Steps
 
@@ -104,7 +103,7 @@ docker-compose up -d
 
 5. Generate initial data
 ```bash
-docker exec -it pokemon_rag_backend_1 bash
+docker exec -it [container_name/id] bash
 python injest.py
 ```
 
