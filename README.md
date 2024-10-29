@@ -1,103 +1,118 @@
-# 宝可梦语义搜索系统
+# Pokemon RAG System
 
-## 项目背景
-宝可梦训练师在选择宝可梦时常面临决策困难。现有的搜索系统存在以下局限：
+A Pokemon retrieval and question answering system based on vector search and large language models. This system utilizes vector database and semantic search technologies to return relevant Pokemon information based on natural language queries.
 
-1. **搜索能力受限**
-   - 仅支持属性、名称等静态特征匹配
-   - 无法处理自然语言描述的需求
-   - 缺乏对宝可梦特性和战术价值的理解
+## AI Models Used
 
-2. **用户体验不佳**
-   - 检索结果缺乏个性化推荐
-   - 没有推荐原因的解释
-   - 战术建议和使用场景说明不足
+### 1. Sentence Transformer
+- Model: `paraphrase-multilingual-mpnet-base-v2`
+- Purpose: Multilingual text embedding generation
+- Features:
+  - Supports multiple languages (Chinese, Japanese, English)
+  - Optimized for semantic similarity tasks
+  - 768-dimensional vector outputs
 
-## 解决方案
-本项目基于RAG（检索增强生成）技术，构建了智能化的宝可梦搜索推荐系统：
+### 2. Large Language Model (via Groq)
+- Model: `llama-3.2-90b-vision-preview`
+- Purpose: Natural language understanding and generation
+- Features:
+  - Advanced context understanding
+  - Multilingual response generation
+  - Story generation capabilities
 
-### 核心功能
-- 自然语言理解：解析用户复杂的搜索意图
-- 语义检索：基于深度向量匹配的相似度搜索
-- 智能推荐：结合场景的个性化宝可梦推荐
-- 策略分析：提供对战策略和团队搭配建议
+## Important Note About API Keys
 
-### 技术特点
-- 高准确度：采用大语言模型提升检索精度
-- 快速响应：优化的向量检索算法
-- 可扩展性：模块化设计，易于功能扩展
+⚠️ **Groq API Configuration Required**
 
-## 技术架构
+This system uses Groq's LLM API for advanced language processing. You must configure your Groq API key before using the system:
 
-### 系统组件
+1. Create a `.env` file in the `flask-app` directory
+2. Add your Groq API key:
 ```
-├── Frontend
-│   ├── React 18
-│   ├── TailwindCSS
-│   └── ShadcnUI
-├── Backend
-│   ├── FastAPI
-│   ├── LangChain
-│   └── pydantic
-└── Infrastructure
-    ├── Elasticsearch (向量存储)
-    └── Llama-13B (推理引擎)
+KEY_groq=your_groq_api_key_here
 ```
 
-### RAG 实现细节
+Never commit your actual API key to version control. The system will not function properly without a valid Groq API key.
 
-#### 1. 数据准备
-```python
-data/
-├── raw/          # 原始宝可梦数据
-├── processed/    # 预处理后的结构化数据
-└── vectors/      # 向量化后的特征数据
-```
+## System Architecture
 
-#### 2. 检索流程
-1. 查询处理
-   - 用户输入分析
-   - 查询意图识别
-   - 关键信息提取
+The system consists of the following main components:
 
-2. 向量检索
-   - 多维特征匹配
-   - 相似度计算
-   - 结果排序优化
+- **Frontend**: React-based user interface
+  - Search interface
+  - Pokemon detail display
+  - Similarity score visualization
 
-3. 内容生成
-   - 基于检索结果的内容整合
-   - 个性化推荐生成
+- **Backend**: Flask-based backend service
+  - Query processing using SentenceTransformer
+  - Vector retrieval service
+  - Llama 3.2 90B integration via Groq API
+  
+- **Elasticsearch**: Vector database
+  - Pokemon information storage
+  - Vector similarity search
 
-## 快速开始
+## Core Features
 
-### 环境要求
+1. **Semantic Search**
+   - Natural language query support via SentenceTransformer
+   - Similarity-based Pokemon retrieval
+   - Multi-language support (Chinese, Japanese, English)
+
+2. **Advanced Language Processing (via Llama 3.2)**
+   - Context-aware response generation
+   - Pokemon background story creation
+   - Relevance analysis
+
+3. **RAG (Retrieval Augmented Generation)**
+   - Context generation based on retrieval results
+   - Relevance analysis and scoring
+   - Automatic Pokemon background story generation
+
+## Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Python 3.8+
+- Valid Groq API key
+- At least 16GB RAM recommended (for model loading)
+
+### Installation Steps
+
+1. Clone the repository
 ```bash
-Docker >= 20.10
-```
-
-### 安装步骤
-
-1. 克隆项目
-```bash
-git clone https://github.com/syuniGo/pokemon_rag.git
+git clone <repository-url>
 cd pokemon_rag
 ```
 
-2. 环境配置
+2. Create environment variable file
 ```bash
-docker-compose build -d
-
-
-3. 启动服务
-
-docker-compose up -d
-
-
+cd flask-app
+cp .env.example .env
 ```
 
-### 访问地址
-- 网页界面：http://localhost:3000
+3. Configure Groq API key
+```bash
+# In flask-app/.env
+KEY_groq=your_groq_api_key_here
+```
 
-## 使用示例
+4. Start services
+```bash
+docker-compose up -d
+```
+
+5. Generate initial data
+```bash
+docker-compose exec backend bash
+python injest.py
+```
+
+
+The system will start on the following ports:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8080
+- Elasticsearch: http://localhost:9200
+
 
