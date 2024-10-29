@@ -104,7 +104,7 @@ docker-compose up -d
 
 5. Generate initial data
 ```bash
-docker-compose exec backend bash
+docker exec -it pokemon_rag_backend_1 bash
 python injest.py
 ```
 
