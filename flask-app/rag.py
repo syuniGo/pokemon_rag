@@ -13,10 +13,8 @@ import re
 
 class VectorSearchEngine:
     def __init__(self):
-    # 初始化ES客户端和模型
         self.es_client = Elasticsearch([os.getenv('ES_HOST', 'http://elasticsearch:9200')])
         self.model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
-        print('self.es_client', self.es_client.info())  # Shows cluster info
         self.groq = Groq(api_key=os.getenv('KEY_groq'))
         self.llm_model = 'llama-3.2-90b-vision-preview'
         
@@ -127,7 +125,7 @@ class VectorSearchEngine:
             }
 
             results = self.es_client.search(
-                    index="p33",
+                    index="pk",
                     body=search_body
                 )
 
@@ -196,19 +194,12 @@ class VectorSearchEngine:
 
         search_results = self.search(query)
         
-        print(f'Search results: {search_results}')
-
         prompt = self.build_prompt(query, search_results)
-        print(f'Generated prompt: {prompt}')
         
         answer, token_stats = self.llm(prompt)
-        print(f'LLM answer: {answer}')
-        print(f'json.loads: {type(answer)}')
-        # matches = re.findall(r'{.*}', answer, re.DOTALL)
-        # print(f'--------------matches: {matches}')
+
         answer_json = self.process_json_text(answer)
         relevance, rel_token_stats = self.evaluate_relevance(query, answer)
-        print(f'Relevance evaluation: {relevance}')
         
         took = time() - t0
 
@@ -227,22 +218,18 @@ class VectorSearchEngine:
             "pokemon_entries": answer_json.get("pokemon_entries"),
             "summary": answer_json.get("summary"),
             "search_results": search_results,
-            # 移除openai_cost相关内容
         }
     
         return answer_data
 
     def process_json_text(self, input_str):
-        # 去除字符串开头的 [ 和结尾的 ]
         cleaned_str = input_str.strip('[]')
         
-        # 清理转义字符
-        cleaned_str = cleaned_str.strip("'")  # 去除可能存在的引号
+        cleaned_str = cleaned_str.strip("'")  
         
         try:
-            # 解析JSON字符串 - json.loads 会自动处理 \n 等转义字符
             json_obj = json.loads(cleaned_str)
             return json_obj
         except json.JSONDecodeError as e:
-            print(f"JSON解析错误: {e}")
+            print(f"error: {e}")
             return None

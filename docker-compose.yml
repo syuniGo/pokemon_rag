@@ -25,15 +25,14 @@ services:
       - "8084:8084"
       - "8888:8888"
     depends_on:
-      - elasticsearch:
-          condition: service_healthy
+      - elasticsearch
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/dbname
     volumes:
       - ./flask-app:/app
     networks:
      - app-network
-
+     
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.4.3
     container_name: elasticsearch
@@ -44,6 +43,9 @@ services:
       - "9200:9200"
       - "9300:9300"
     volumes:
-      - ./elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
      - app-network
+
+volumes:
+  elasticsearch_data:

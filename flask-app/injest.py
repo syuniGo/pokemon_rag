@@ -25,23 +25,9 @@ class PokemonIngest:
         self.model = SentenceTransformer(model_path)
         self.es = Elasticsearch([es_host])
         
-        # ベクトル生成用のフィールドマッピング
-        # self.field_mapping = {
-        #     'name_chinese': ('中文名', 'str'),
-        #     'name_english': ('英文名', 'str'),
-        #     'name_japanese': ('日文名', 'str'),
-        #     'global_no': ('図鑑番号', 'str'),
-        #     'form': ('形態', 'str'),
-        #     'description_scarlet': ('スカーレット版説明', 'str'),
-        #     'description_violet': ('バイオレット版説明', 'str'),
-        #     'types': ('タイプ', 'list'),
-        #     'abilities': ('特性', 'list')
-        # }
     def prepare_data(self, db_path: str = 'pokedex.db') -> pd.DataFrame:
-        """
-        从SQLite数据库准备数据并按ES映射格式转换
-        """
-        logger.info("正在从数据库读取数据...")
+
+        logger.info("loading...")
         
         with sqlite3.connect(db_path) as conn:
             # 读取数据
@@ -73,13 +59,10 @@ class PokemonIngest:
             'description_violet': merged_df['violet'].astype(str).where(merged_df['violet'].notna(), None)
         })
 
-        logger.info(f"数据准备完成,共 {len(result_df)} 条记录")
+        logger.info(f"{len(result_df)} records load complete")
         return result_df
 
     def safe_process(self, value: Any, field_type: str) -> str:
-        """
-        テキスト結合のための安全なデータ処理
-        """
         if pd.isna(value):
             return None
         
@@ -96,13 +79,9 @@ class PokemonIngest:
         return str(value)
 
     def create_combined_text(self, df: pd.Series) -> str:
-        """
-        将单行数据组合成文本
-        """
         text_fields = []
         
         for col in df.index:
-            # 跳过stats_开头的字段
             if col.startswith('stats_'):
                 continue
                 
@@ -114,15 +93,9 @@ class PokemonIngest:
 
 
     def generate_vector(self, text: str) -> List[float]:
-        """
-        テキストベクトルの生成
-        """
         return self.model.encode(text, show_progress_bar=False).tolist()
 
     def process_dataframe(self, df: pd.DataFrame) -> List[Dict]:
-        """
-        DataFrameの処理とベクトル生成
-        """
         logger.info("データ処理開始...")
         df = df.copy()
         
@@ -132,20 +105,11 @@ class PokemonIngest:
         logger.info("ベクトル生成中...")
         tqdm.pandas(desc="データ処理", bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}')
         df['combined_text_vector'] = df['combined_text'].progress_apply(self.generate_vector)
-        # with tqdm(total=len(df), desc="データ処理", bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}') as pbar:
-        #     df['combined_text_vector'] = df['combined_text'].apply(lambda x: self.generate_vector(x, pbar))
-        # vectors = []
-        # for _, row in tqdm(df.iterrows(), desc="データ処理", total=len(df), bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}'):
-        #     vector = self.generate_vector(row['combined_text'])
-        #     vectors.append(vector)
-            
-        # df['combined_text_vector'] = vectors
         
         logger.info("データ処理完了")
         return df.to_dict('records')
     
     def create_index(self, index_name: str = "") -> None:
-        """ES インデックスとマッピングの作成"""
         index_settings = {
             "settings": {
                 "number_of_shards": 1,
@@ -178,19 +142,15 @@ class PokemonIngest:
             }
         }
 
-        # 删除已存在的索引
         self.es.indices.delete(index=index_name, ignore_unavailable=True)
-        
-        # 创建新索引
+
         self.es.indices.create(index=index_name, body=index_settings)
         logger.info(f"インデックス {index_name} の作成が完了しました")
 
     def bulk_index_documents(self, documents: List[Dict], 
                            index_name: str = "test2", 
                            batch_size: int = 100) -> None:
-        """
-        ドキュメントの一括インデックス
-        """
+
         logger.info(f"インデックス {index_name} へのドキュメント一括登録開始")
         
         for i in tqdm(range(0, len(documents), batch_size), desc="インデックス進捗"):
@@ -211,26 +171,24 @@ class PokemonIngest:
         logger.info("ドキュメントのインデックスが完了しました")
 
 def main():
-    # 設定パラメータ
     DB_PATH = "pokedex.db"
-    INDEX_NAME = "p33"
+    INDEX_NAME = "pk"
     ES_HOST = "http://elasticsearch:9200"
     MODEL_PATH = "paraphrase-multilingual-mpnet-base-v2"
     
     try:
-        # プロセッサの初期化
         ingest = PokemonIngest(model_path=MODEL_PATH, es_host=ES_HOST)
         
-        # データ準備
+        if ingest.es.indices.exists(index=INDEX_NAME):
+            logger.info(f"{INDEX_NAME} が存在，スキップ")
+            return
+
         df = ingest.prepare_data(DB_PATH)
-        
-        # インデックス作成
+ 
         ingest.create_index(index_name=INDEX_NAME)
         
-        # データ処理
         processed_data = ingest.process_dataframe(df)
         
-        # データのインデックス
         ingest.bulk_index_documents(processed_data, index_name=INDEX_NAME)
         
         logger.info("全ての処理が完了しました")
