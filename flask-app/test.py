@@ -18,29 +18,6 @@ class TestEndpoints(unittest.TestCase):
         self.key_groq = os.getenv('KEY_groq')
         self.base_url = 'http://localhost:8084'
     
-    # def test_rag(self):
-    #     print('test----rag')
-    #     test_query = "fire"
-    #     response = requests.post(
-    #         f"{self.base_url}/api/search",
-    #         json={"query": test_query}
-    #     )
-        
-    #     self.assertEqual(response.status_code, 200)
-    #     data = response.json()
-    #     print('sdada',data)
-        
-    #     # 验证返回数据结构
-    #     self.assertIn("answer", data)
-    #     self.assertIn("model_used", data)
-    #     self.assertIn("relevance", data)
-    #     self.assertIn("prompt_tokens", data)
-        
-    #     # 验证数据内容
-    #     self.assertIsInstance(data["answer"], str)
-    #     self.assertTrue(len(data["answer"]) > 0)
-    #     self.assertIn(data["relevance"], ["NON_RELEVANT", "PARTLY_RELEVANT", "RELEVANT", "UNKNOWN"])
-    
     def test_es(self):
         es_client = Elasticsearch([os.getenv('ES_HOST', 'http://elasticsearch:9200')])
         model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
@@ -65,7 +42,6 @@ class TestEndpoints(unittest.TestCase):
             )
         
         for hit in results['hits']['hits']:
-            # 获取文档的所有字段
             source = hit['_source']
             print("\n文档 ID:", hit['_id'])
             print("所有字段:")
