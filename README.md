@@ -86,16 +86,15 @@ git clone <repository-url>
 cd pokemon_rag
 ```
 
-2. Create environment variable file
-```bash
-cd flask-app
-cp .env.example .env
-```
-
-3. Configure Groq API key
+2. Configure Groq API key
 ```bash
 # In flask-app/.env
 KEY_groq=your_groq_api_key_here
+```
+
+3. Build services
+```bash
+docker-compose build
 ```
 
 4. Start services
