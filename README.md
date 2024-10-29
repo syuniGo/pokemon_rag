@@ -68,14 +68,11 @@ data/
 3. 内容生成
    - 基于检索结果的内容整合
    - 个性化推荐生成
-   - 战术建议生成
 
 ## 快速开始
 
 ### 环境要求
 ```bash
-Python >= 3.9
-Node.js >= 16
 Docker >= 20.10
 ```
 
@@ -89,74 +86,18 @@ cd pokemon_rag
 
 2. 环境配置
 ```bash
-# 后端配置
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: .\venv\Scripts\activate
-pip install -r requirements.txt
+docker-compose build -d
 
-# 前端配置
-cd frontend
-npm install
-```
 
 3. 启动服务
-```bash
-# 使用 Docker Compose
+
 docker-compose up -d
 
-# 或手动启动
-# 后端
-cd backend
-uvicorn main:app --reload --port 8084
 
-# 前端
-cd frontend
-npm run dev
 ```
 
 ### 访问地址
 - 网页界面：http://localhost:3000
-- API文档：http://localhost:8084/docs
-- 健康检查：http://localhost:8084/health
 
 ## 使用示例
-
-```bash
-# 示例查询
-curl -X POST "http://localhost:8080/api/search" \
-     -H "Content-Type: application/json" \
-     -d "{"query": "fairy"}"
-```
-
-响应示例：
-```json
-{
-    "nameEn": "Sylveon",
-    "nameCn": "仙子伊布",
-    "nameJa": "ニンフィア",
-    "types": [
-        "フェアリー",
-        ""
-    ],
-    "abilities": [
-        "メロメロボディ",
-        "",
-        "フェアリースキン"
-    ],
-    "no": "700",
-    "description": "敵意を 消す 癒しの 波動を リボンのような 触角から 相手の 体に 送り込む。",
-    "descriptionViolet": "触角を なびかせ 軽やかに 舞う 姿は 優雅だが 技は 鋭く 急所を 狙う。",
-    "form": "",
-    "stats": {
-        "hp": 95,
-        "attack": 65,
-        "defense": 65,
-        "specialAttack": 110,
-        "specialDefense": 130,
-        "speed": 60
-    }
-}
-```
-docker exec backend make run
 
