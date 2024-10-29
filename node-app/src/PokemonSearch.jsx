@@ -6,7 +6,7 @@ import "/src/tw.css";
 import PokemonDetailsCard from './PokemonDetailsCard';
 
 const DISPLAY_COUNT = 3;
-const API_ENDPOINT = 'http://localhost:8084/api/search';
+const API_ENDPOINT = 'http://localhost:8080/api/search';
 
 const STYLES = {
   container: "min-h-screen bg-[#1a1f36]",

@@ -23,3 +23,6 @@ clean:
 	docker system prune -f
 
 .PHONY: install-local install build run run-local docker-compose-up docker-compose-down clean
+
+injest:
+	python injest.py
