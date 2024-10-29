@@ -104,7 +104,7 @@ docker-compose up -d
 5. Generate initial data
 ```bash
 docker exec -it [container_name/id] bash
-python injest.py
+make injest
 ```
 
 
