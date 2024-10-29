@@ -178,10 +178,6 @@ def main():
     
     try:
         ingest = PokemonIngest(model_path=MODEL_PATH, es_host=ES_HOST)
-        
-        if ingest.es.indices.exists(index=INDEX_NAME):
-            logger.info(f"{INDEX_NAME} が存在，スキップ")
-            return
 
         df = ingest.prepare_data(DB_PATH)
  
