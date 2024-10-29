@@ -35,8 +35,8 @@ const App = () => {
 
   return (
     <Routes>
-      <Route exact path="/" element={<PokemonList pokemonList={pokemonList} />} />
-      <Route exact path="/search" element={<PokemonSearch />} />
+      {/* <Route exact path="/" element={<PokemonList pokemonList={pokemonList} />} /> */}
+      <Route exact path="/" element={<PokemonSearch />} />
       <Route exact path="/pokemon/:name" element={
         <PokemonPage pokemonList={pokemonList} previous={previous} next={next} />
       } />
