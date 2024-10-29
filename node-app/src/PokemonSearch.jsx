@@ -3,6 +3,8 @@ import { Input } from "/components/ui/input";
 import { Button } from "/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import "/src/tw.css";
+import PokemonDetailsCard from './PokemonDetailsCard';
+
 /**
  * @typedef {Object} Pokemon
  * @property {number} id
@@ -21,13 +23,12 @@ import "/src/tw.css";
 export default function PokemonSearch() {
   const [search, setSearch] = useState('');
   const [pokemonList, setPokemonList] = useState([]);
-  const [displayList, setDisplayList] = useState([]); // 新增：当前显示的3个宝可梦
+  const [displayList, setDisplayList] = useState([]); 
   const [searchResponse, setSearchResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedPokemonIndex, setSelectedPokemonIndex] = useState(0);
 
-  // 更新显示列表
   const updateDisplayList = useCallback((newIndex) => {
     const listLength = pokemonList.length;
     const displayItems = [];
@@ -36,14 +37,13 @@ export default function PokemonSearch() {
       const index = (newIndex + i) % listLength;
       displayItems.push({
         ...pokemonList[index],
-        displayIndex: i // 添加显示位置索引
+        displayIndex: i 
       });
     }
 
     setDisplayList(displayItems);
   }, [pokemonList]);
 
-  // 初始化和数据更新时设置显示列表
   useEffect(() => {
     if (pokemonList.length > 0) {
       updateDisplayList(0);
@@ -63,16 +63,14 @@ export default function PokemonSearch() {
       });
       const data = await response.json();
       setSearchResponse(data);
-      // 修改：结合search_results和pokemon_entries创建新的pokemonList
       if (data?.search_results && data?.pokemon_entries) {
         const mostRelevantNo = data.summary?.most_relevant_pokemon?.no;
         const newPokemonList = data.search_results.map(pokemon => {
-          const entry = data.pokemon_entries.find(entry => entry.no === pokemon.no);
+          const entry = data.pokemon_entries.find(entry => entry.no == pokemon.no);
           return {
             id: pokemon.no,
             name: pokemon.nameCn,
-            isRelevant: pokemon.no === mostRelevantNo, // 根据most_relevant_pokemon设置推荐
-            // 添加pokemon_entries的信息
+            isRelevant: pokemon.no == mostRelevantNo, 
             powerRating: entry?.power_rating || 'N/A',
             relevanceScore: entry?.relevance_score || 0,
             relevanceAnalysis: entry?.relevance_analysis || '',
@@ -92,14 +90,14 @@ export default function PokemonSearch() {
     const nextIndex = (currentIndex + 1) % pokemonList.length;
     setCurrentIndex(nextIndex);
     updateDisplayList(nextIndex);
-    setSelectedPokemonIndex(0); // 重置选中项到第一个
+    setSelectedPokemonIndex(1); 
   }, [currentIndex, pokemonList.length, updateDisplayList]);
 
   const handlePrev = useCallback(() => {
     const prevIndex = (currentIndex - 1 + pokemonList.length) % pokemonList.length;
     setCurrentIndex(prevIndex);
     updateDisplayList(prevIndex);
-    setSelectedPokemonIndex(0); // 重置选中项到第一个
+    setSelectedPokemonIndex(1); 
   }, [currentIndex, pokemonList.length, updateDisplayList]);
 
   const handleClearSearch = () => {
@@ -108,6 +106,24 @@ export default function PokemonSearch() {
     setDisplayList([]);
     setSearchResponse(null);
   };
+
+  const handlePokemonClick = (index) => {
+    const clickedIndex = (currentIndex + index) % pokemonList.length; 
+
+    let newIndex;
+    if (index === 0) { 
+      newIndex = (clickedIndex - 1 + pokemonList.length) % pokemonList.length;
+    } else if (index === 2) {  
+      newIndex = (clickedIndex + 1) % pokemonList.length;
+    } else {  
+      newIndex = currentIndex;
+    }
+
+    setCurrentIndex(newIndex);
+    updateDisplayList(newIndex);
+    setSelectedPokemonIndex(1);  
+  };
+
 
   return (
     <div className="min-h-screen bg-[#1a1f36]">
@@ -159,8 +175,8 @@ export default function PokemonSearch() {
                 {displayList.map((pokemon, index) => (
                   <div
                     key={`${pokemon.id}-${pokemon.displayIndex}`}
-                    onClick={() => setSelectedPokemonIndex(index)}
-                    className={`transform transition-all duration-300 cursor-pointer ${index === 1  
+                    onClick={() => handlePokemonClick(index)}
+                    className={`transform transition-all duration-300 cursor-pointer ${index === 1
                       ? 'scale-125 z-10'
                       : ''
                       }`}
@@ -173,7 +189,7 @@ export default function PokemonSearch() {
                         : 'hover:bg-[#3a3f55]'
                       }`}>
                       <div className={`w-full aspect-square rounded-lg p-2 mb-2 ${pokemon.isRelevant
-                        ? 'bg-[#232655]' // 保留推荐项的图片背景色
+                        ? 'bg-[#232655]'
                         : 'bg-[#1a1f36]'
                         }`}>
                         <img
@@ -184,13 +200,10 @@ export default function PokemonSearch() {
                       </div>
                       <div className="text-center p-4">
                         <p className={`font-medium truncate ${pokemon.isRelevant
-                          ? 'text-[#FFD700]'  // 保留推荐项的金色文字
+                          ? 'text-[#FFD700]' 
                           : 'text-white'
                           }`}>
                           {pokemon.name}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          #{String(pokemon.id).padStart(3, '0')}
                         </p>
                         <div className="mt-2 space-y-1">
                           <p className="text-xs text-gray-300">
@@ -222,96 +235,44 @@ export default function PokemonSearch() {
           </div>
         )}
 
-        {/* Pokemon Details */}
-        {displayList.length > 0 && searchResponse?.search_results[currentIndex] && (
-          <div className="mt-4 bg-[#2a2f45] rounded-lg p-4">
-            <div className="grid grid-cols-3 gap-4">
-              {/* 左侧：基本信息 */}
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-sm text-gray-400 mb-1">名称</h3>
-                  <p className="text-white text-sm">中：{searchResponse.search_results[currentIndex].nameCn}</p>
-                  <p className="text-white text-sm">英：{searchResponse.search_results[currentIndex].nameEn}</p>
-                  <p className="text-white text-sm">日：{searchResponse.search_results[currentIndex].nameJa}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm text-gray-400 mb-1">属性</h3>
-                  <div className="flex flex-wrap gap-1">
-                    {searchResponse.search_results[currentIndex].types.map((type, index) => (
-                      <span key={index} className="px-2 py-0.5 bg-[#3a3f55] rounded-full text-white text-xs">
-                        {type}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        {displayList.length > 0 && searchResponse?.search_results[selectedPokemonIndex] && (
+          <PokemonDetailsCard
+            pokemon={{
+              ...(() => {
+                const selectedPokemon = displayList[selectedPokemonIndex];
+                const searchResult = searchResponse.search_results.find(
+                  pokemon => pokemon.no === selectedPokemon.id
+                );
 
-              {/* 中间：能力值 */}
-              <div className="col-span-2">
-                <h3 className="text-sm text-gray-400 mb-1">能力值</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(searchResponse.search_results[currentIndex].stats).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="text-gray-300 text-xs w-8">
-                        {key === 'hp' ? 'HP' :
-                          key === 'attack' ? '攻击' :
-                            key === 'defense' ? '防御' :
-                              key === 'specialAttack' ? '特攻' :
-                                key === 'specialDefense' ? '特防' :
-                                  '速度'}
-                      </span>
-                      <div className="flex-1 flex items-center gap-1">
-                        <div className="flex-1 bg-[#1a1f36] rounded-full h-1.5">
-                          <div
-                            className="bg-[#4c4dff] h-1.5 rounded-full"
-                            style={{ width: `${Math.min((value / 200) * 100, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-white text-xs w-6">{value}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 底部：特性和描述 */}
-            <div className="mt-3 space-y-2">
-              <div>
-                <h3 className="text-sm text-gray-400 mb-1">特性</h3>
-                <div className="flex flex-wrap gap-1">
-                  {searchResponse.search_results[currentIndex].abilities.map((ability, index) => (
-                    <span key={index} className="px-2 py-0.5 bg-[#3a3f55] rounded-full text-white text-xs">
-                      {ability}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm text-gray-400 mb-1">描述</h3>
-                <p className="text-white text-sm">{searchResponse.search_results[currentIndex].description}</p>
-              </div>
-              <div className="mt-4 border-t border-[#3a3f55] pt-4">
-                <h3 className="text-sm text-gray-400 mb-2">额外信息</h3>
-                <p className="text-white text-sm mb-2">
-                  相关性分析: {displayList[selectedPokemonIndex]?.relevanceAnalysis}
-                </p>
-                <p className="text-white text-sm">
-                  背景故事: {displayList[selectedPokemonIndex]?.backgroundStory}
-                </p>
-              </div>
-            </div>
-          </div>
+                return {
+                  name: {
+                    cn: searchResult.nameCn,
+                    en: searchResult.nameEn,
+                    ja: searchResult.nameJa
+                  },
+                  id: searchResult.no,
+                  stats: searchResult.stats,
+                  types: searchResult.types,
+                  abilities: searchResult.abilities,
+                  description: searchResult.description,
+                  relevanceAnalysis: selectedPokemon.relevanceAnalysis,
+                  backgroundStory: selectedPokemon.backgroundStory,
+                  relevanceScore: selectedPokemon.relevanceScore
+                };
+              })()
+            }}
+          />
         )}
+        
         {/* AI Response */}
         {searchResponse && (
           <div className="space-y-4 mt-8">
-            <div className="bg-[#2a2f45] rounded-lg p-6">
+            {/* <div className="bg-[#2a2f45] rounded-lg p-6">
               <h2 className="text-lg font-medium text-white mb-4">AI 回答</h2>
               <p className="text-gray-300 leading-relaxed">
                 {searchResponse.answer}
               </p>
-            </div>
+            </div> */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#2a2f45] rounded-lg p-4">
                 <h3 className="font-medium text-white mb-2">相关度</h3>

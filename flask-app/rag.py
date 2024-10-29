@@ -14,138 +14,58 @@ import re
 class VectorSearchEngine:
     def __init__(self):
     # 初始化ES客户端和模型
-        print('-------es init-------')
         self.es_client = Elasticsearch([os.getenv('ES_HOST', 'http://elasticsearch:9200')])
         self.model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
         print('self.es_client', self.es_client.info())  # Shows cluster info
         self.groq = Groq(api_key=os.getenv('KEY_groq'))
-
-        # self.prompt_template = """
-        #     You're a Pokémon expert. Use chinese return answer. Choose the SINGLE most relevant Pokémon entry from the CONTEXT that best matches the QUESTION. 
-
-        #     First, explain WHY you chose this particular entry in 2-3 sentences. Consider:
-        #     - How closely it matches the question's topic/theme
-        #     - Specific keywords or concepts that overlap
-        #     - Why other entries are less relevant
-
-        #     Then, use only facts from your chosen entry to answer the question.
-
-        #     QUESTION: {question}
-
-        #     CONTEXT: {context}
-        # """.strip()
-        
-        # self.prompt_template = """You are a Pokémon expert. Please analyze each Pokémon entry in the CONTEXT and evaluate its relevance to the QUESTION. Respond in Chinese using this exact format:
-        #         When analyzing, consider:
-        #         1. Match between question theme and Pokémon characteristics (type, abilities, description)
-        #         2. Keyword overlap
-        #         3. Statistical relevance
-        #         4. Related information in Pokémon descriptions
-
-        #         QUESTION: {question}
-
-        #         CONTEXT: {context}
-                
-        #         Please analyze the content and context of the generated answer in relation to the question
-        #         and provide your evaluation in parsable JSON without using code blocks:
-
-        #         {{
-        #         "no": [宝可梦编号],
-        #         "relevance_score": [相关性评分 0-100],
-        #         "analysis": [具体分析原因,50字以内,用中文回答]
-        #         "most_relevant"
-        #         "bestno": [最相关宝可梦的编号],
-        #         "explanation": [为什么选择这个作为最相关的,100字以内,用中文回答],
-        #         "story": [给每一个宝可梦写一段背景故事,100字以内,用中文来写],
-        #         }}
-        # # """.strip()
-        
-        # self.prompt_template = """
-        #     You are a Pokémon Master Analyst. For each Pokémon entry in the CONTEXT, analyze and evaluate its relationship to the QUESTION. Present your analysis in Chinese using the following structured format:
-        #     评估维度 (Evaluation Dimensions):
-
-        #     主题契合度: 问题与宝可梦特征(属性、特性、描述)的匹配程度
-        #     关键词关联: 描述文本与问题的用词重合度
-        #     数据相关性: 基础数值与问题的关联度
-        #     背景描述关联: 宝可梦描述与问题的关联程度
-
-        #     请对CONTEXT中的每个宝可梦进行分析,并以以下JSON格式输出(无需代码块),不要添加任何额外文本或解释:
-
-        #     {{
-        #         "pokemon_entries": [
-        #                 {{
-        #                     "no": "宝可梦图鉴编号",
-        #                     "name": "中文名称",
-        #                     "relevance_score": "相关性评分(0-100)",
-        #                     "power_rating": "实力评级(S/A/B/C/D)",
-        #                     "relevance_analysis": "与问题相关性分析(50字内)",
-        #                     "background_story": "为该宝可梦创作一个的背景故事,带悬疑色彩(100字内)"
-        #                 }}
-        #             ],
-        #         "summary": {{
-        #             "most_relevant_pokemon": {{
-        #             "no": "最相关宝可梦的编号",
-        #             "name": "中文名称",
-        #             "explanation": "为什么这个宝可梦最相关(100字内)"
-        #         }}
-        #     }}
-
-        #     QUESTION: {question}
-        #     CONTEXT: {context}
-        #     评分标准:
-        #         - 实力评级参考:
-        #         S级: 种族值总和600以上或具有超强特性组合
-        #         A级: 种族值总和500-599或拥有优秀特性搭配
-        #         B级: 种族值总和400-499且特性正常
-        #         C级: 种族值总和300-399
-        #         D级: 种族值总和300以下
-        # """.strip()
+        self.llm_model = 'llama-3.2-90b-vision-preview'
         
         self.prompt_template = """
-            あなたはポケモンマスターアナリストです。CONTEXTの各ポケモンエントリーについて、QUESTIONとの関係を分析・評価してください。以下の構造化された形式で分析を日本語で提示してください：
-
-            評価次元：
-
-            テーマ適合性: 質問とポケモンの特徴（タイプ、特性、説明）との適合度
-            キーワード関連性: 説明文と質問における用語の一致度
-            データ関連性: 基礎値と質問との関連性
-            背景説明関連性: ポケモンの説明と質問との関連度
-
-            CONTEXTの各ポケモンを分析し、以下のJSON形式で出力してください（コードブロックなし、追加の説明なし）：
-
+            あなたはポケモンマスターアナリストであり、ポケモン怪談専門の小説家です。
+            CONTEXTの各ポケモンについて、QUESTIONとの関係を分析・評価し、以下の形式で出力してください。
+            注意事項:
+            - 必ず有効なJSONフォーマットで出力すること
+            - バックスラッシュ(\)や特殊文字、エスケープ文字を含めないこと
+            - アンダースコア(_)は単独で使用し、\_のような形式は使用しないこと
+            - 余計な文字や改行を含めないこと
+            出力形式は以下のJSONで:
+            
             {{
                 "pokemon_entries": [
                     {{
-                        "no": "ポケモン図鑑番号",
-                        "name": "日本語名称",
-                        "relevance_score": "関連性スコア（0-100）",
-                        "power_rating": "実力ランク（S/A/B/C/D）",
-                        "relevance_analysis": "質問との関連性分析（50文字以内）",
-                        "background_story": "ミステリアスな背景ストーリー（100文字以内）"
+                    "no": 数字で図鑑番号,
+                    "name": "ポケモンの名前",
+                    "relevance_score": 0から100までの数字,
+                    "power_rating": "S/A/B/C/Dのいずれか",
+                    "relevance_analysis": "日本語で関連性の分析を100文字以内で",
+                    "background_story": "日本語で怪談を200文字以内で"
                     }}
                 ],
                 "summary": {{
                     "most_relevant_pokemon": {{
-                        "no": "最も関連性の高いポケモンの図鑑番号",
-                        "name": "日本語名称",
-                        "explanation": "このポケモンが最も関連性が高い理由（100文字以内）"
+                    "no": "最も関連性の高いポケモンの図鑑番号",
+                    "name": "ポケモン名",  
+                    "explanation": "日本語で選択理由を100文字以内で"
                     }}
                 }}
             }}
+            
+            実力ランクの基準:
+            S: 種族値合計600以上または特に強力な特性
+            A: 種族値合計500-599または優れた特性
+            B: 種族値合計400-499で通常の特性
+            C: 種族値合計300-399
+            D: 種族値合計300未満
+
+            分析の注意点:
+            - 怪談は不気味さや恐怖を感じる要素を必ず含めること
+            - 関連性分析は客観的な根拠に基づくこと
+            - スコアは具体的な要素から算出すること
 
             QUESTION: {question}
             CONTEXT: {context}
-
-            評価基準：
-            パワーランクの基準：
-            Sランク: 種族値合計600以上または特に強力な特性の組み合わせ
-            Aランク: 種族値合計500-599または優れた特性の組み合わせ
-            Bランク: 種族値合計400-499で通常の特性
-            Cランク: 種族値合計300-399
-            Dランク: 種族値合計300未満
-        """.strip()
-                    
-
+        """
+            
         self.entry_template = """
             "nameEn": {nameEn},
             "nameCn": {nameCn},
@@ -162,54 +82,35 @@ class VectorSearchEngine:
             "speed": {stats[speed]}
         """.strip()
             
-            
-        # self.evaluation_prompt_template = """
-        #     You are an expert evaluator for a RAG system.
-        #     Your task is to analyze the relevance of the generated answer to the given question.
-        #     Based on the relevance of the generated answer, you will classify it
-        #     as "NON_RELEVANT", "PARTLY_RELEVANT", or "RELEVANT".
-
-        #     Here is the data for evaluation:
-
-        #     Question: {question}
-        #     Generated Answer: {answer}
-
-        #     Please analyze the content and context of the generated answer in relation to the question
-        #     and provide your evaluation in parsable JSON without using code blocks:
-
-        #     {{
-        #     "Relevance": "NON_RELEVANT" | "PARTLY_RELEVANT" | "RELEVANT",
-        #     "Explanation": "[Provide a brief explanation for your evaluation]"
-        #     }}
-        #     """.strip()
-        
         
         self.evaluation_prompt_template = """
             あなたはRAGシステムの専門評価者です。
-            与えられた質問に対する生成された回答の関連性を分析することがあなたの任務です。
-            生成された回答の関連性に基づいて、「無関係」、「部分的に関連」、または「関連あり」に分類してください。
+                与えられた質問に対する生成された回答の関連性を分析することがあなたの任務です。
+                生成された回答の関連性に基づいて、「無関係」、「部分関連」、または「関連あり」に分類してください。
 
-            評価のためのデータは以下の通りです：
+                評価のためのデータは以下の通りです：
 
-            質問: {question}
-            生成された回答: {answer}
+                質問: {question}
+                生成された回答: {answer}
 
-            生成された回答の内容と文脈を質問との関連で分析し、
-            以下のような解析可能なJSONで評価を提供してください（コードブロックは使用しない）：
+                生成された回答の内容と文脈を質問との関連で分析し、
+                以下のような解析可能なJSONで評価を提供してください（コードブロックは使用しない、追加の説明なし、日本語）：
 
             {{
-            "関連性": "無関係" | "部分的に関連" | "関連あり",
-            "説明": "[評価の簡潔な説明を提供してください]"
+                "Relevance": "無関係" | "部分的に関連" | "関連あり",
+                "relevance_explanation": "[評価の簡潔な説明を提供してください]"
             }}
+            
         """.strip()
             
             
-    def search(self, query, top_k=100):
+    def search(self, query, top_k=5):
         try:
             print(f'Search query: {query}, top_k: {top_k}')
             
             query_vector = self.model.encode(query).tolist()
-            
+            vector_dim = len(query_vector)
+            print(f"Query vector dimension: {vector_dim}")
             search_body = {
                 "knn": {
                     "field": "combined_text_vector",
@@ -218,18 +119,17 @@ class VectorSearchEngine:
                     "num_candidates": 100
                 },
                 "collapse": {
-                    "field": "global_no"  # 按 global_no 去重
+                    "field": "global_no"  
                 },
-                "size": 5,  # 限制返回5个结果
                 "_source": {
-                    "exclude": ["combined_text_vector"]
+                    "excludes": ["combined_text_vector"]
                 }
             }
 
             results = self.es_client.search(
-                index="pokemon_index",
-                body=search_body
-            )
+                    index="p33",
+                    body=search_body
+                )
 
             return [{
                 'nameEn': hit['_source']['name_english'],
@@ -264,10 +164,10 @@ class VectorSearchEngine:
         return prompt
 
 
-    def llm(self, prompt, model="llama3-8b-8192"):
+    def llm(self, prompt):
         response = self.groq.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model=model
+            model= self.llm_model,
         )
         answer = response.choices[0].message.content
         token_stats = {
@@ -279,7 +179,7 @@ class VectorSearchEngine:
 
     def evaluate_relevance(self, question, answer):
         prompt = self.evaluation_prompt_template.format(question=question, answer=answer)
-        evaluation, token_stats = self.llm(prompt, model="llama-3.2-90b-vision-preview")
+        evaluation, token_stats = self.llm(prompt)
         print(f'Evaluation prompt: {prompt}')
         print(f'Evaluation result: {evaluation}')
 
@@ -290,21 +190,7 @@ class VectorSearchEngine:
             result = {"Relevance": "UNKNOWN", "Explanation": "Failed to parse evaluation"}
             return result, token_stats
 
-
-    # def calculate_openai_cost(self, model, tokens):
-    #     openai_cost = 0
-
-    #     if model == "gpt-4o-mini":
-    #         openai_cost = (
-    #             tokens["prompt_tokens"] * 0.00015 + tokens["completion_tokens"] * 0.0006
-    #         ) / 1000
-    #     else:
-    #         print("Model not recognized. OpenAI cost calculation failed.")
-
-    #     return openai_cost
-
-
-    def rag(self, query, model="llama3-8b-8192"):
+    def rag(self, query):
         t0 = time()
         print(f'Starting RAG pipeline for query: {query}')
 
@@ -315,18 +201,12 @@ class VectorSearchEngine:
         prompt = self.build_prompt(query, search_results)
         print(f'Generated prompt: {prompt}')
         
-        answer, token_stats = self.llm(prompt, model=model)
+        answer, token_stats = self.llm(prompt)
         print(f'LLM answer: {answer}')
         print(f'json.loads: {type(answer)}')
-        matches = re.findall(r'{.*}', answer, re.DOTALL)
-        print(f'--------------matches: {matches}')
-
-        json_str = matches[-1]
-        print(f'--------------matches: {json_str}')
-
-        answer_json = json.loads(json_str)
-        print(f'-----------answer_json extracted: {answer_json}')
-
+        # matches = re.findall(r'{.*}', answer, re.DOTALL)
+        # print(f'--------------matches: {matches}')
+        answer_json = self.process_json_text(answer)
         relevance, rel_token_stats = self.evaluate_relevance(query, answer)
         print(f'Relevance evaluation: {relevance}')
         
@@ -334,10 +214,10 @@ class VectorSearchEngine:
 
         answer_data = {
             "answer": answer,
-            "model_used": model,
+            "model_used": self.llm_model,
             "response_time": took,
             "relevance": relevance.get("Relevance", "UNKNOWN"),
-            "relevance_explanation": relevance.get("Explanation", "Failed to parse evaluation"),
+            "relevance_explanation": relevance.get("relevance_explanation", "Failed to parse evaluation"),
             "prompt_tokens": token_stats["prompt_tokens"],
             "completion_tokens": token_stats["completion_tokens"], 
             "total_tokens": token_stats["total_tokens"],
@@ -352,4 +232,17 @@ class VectorSearchEngine:
     
         return answer_data
 
-
+    def process_json_text(self, input_str):
+        # 去除字符串开头的 [ 和结尾的 ]
+        cleaned_str = input_str.strip('[]')
+        
+        # 清理转义字符
+        cleaned_str = cleaned_str.strip("'")  # 去除可能存在的引号
+        
+        try:
+            # 解析JSON字符串 - json.loads 会自动处理 \n 等转义字符
+            json_obj = json.loads(cleaned_str)
+            return json_obj
+        except json.JSONDecodeError as e:
+            print(f"JSON解析错误: {e}")
+            return None
